@@ -1,19 +1,7 @@
 include("struct/distance.jl")
+include("struct/union_find.jl")
 
-"""
-Essaie de regrouper des données en commençant par celles qui sont les plus proches.
-Deux clusters de données peuvent être fusionnés en un cluster C s'il n'existe aucune données x_i pour aucune caractéristique j qui intersecte l'intervalle représenté par les bornes minimale et maximale de C pour j (x_i,j n'appartient pas à [min_{x_k dans C} x_k,j ; max_{k dans C} x_k,j]).
-
-Entrées :
-- x : caractéristiques des données d'entraînement
-- y : classe des données d'entraînement
-- percentage : le nombre de clusters obtenu sera égal à n * percentage
- 
-Sorties :
-- un tableau de Cluster constituant une partition de x
-"""
-function exactMerge(x, y)
-
+function fullMerge(x, y, exact)
     n = length(y)
     m = length(x[1,:])
     
@@ -27,9 +15,7 @@ function exactMerge(x, y)
     end
 
     # Id du cluster de chaque donnée dans clusters
-    # (clusters[clusterId[i]] est le cluster contenant i)
-    # (clusterId[i] = i, initialement)
-    clusterId = collect(1:n)
+    uf = makeUnionFind(n)
 
     # Distances entre des couples de données de même classe
     distances = Vector{Distance}([])
@@ -51,30 +37,57 @@ function exactMerge(x, y)
     for distance in distances
 
         # Si les deux données associées ne sont pas déjà dans le même cluster
-        cId1 = clusterId[distance.ids[1]]
-        cId2 = clusterId[distance.ids[2]]
+        cId1 = find(uf, distance.ids[1])
+        cId2 = find(uf, distance.ids[2])
 
         if cId1 != cId2
             c1 = clusters[cId1]
             c2 = clusters[cId2]
 
             # Si leurs clusters satisfont les conditions de fusion
-            if canMerge(c1, c2, x, y)
+            if canMerge(c1, c2, x, y) || !exact
 
                 # Les fusionner
-                merge!(c1, c2)
-                for id in c2.dataIds
-                    clusterId[id]= cId1
+                if union(uf, distance.ids[1], distance.ids[2])
+                    merge!(c1, c2)
+                else
+                    merge!(c2, c1)
                 end
-
                 # Vider le second cluster
-                empty!(clusters[cId2].dataIds)
+                # empty!(clusters[removedId].dataIds)
             end 
         end 
     end
 
-    # Retourner tous les clusters non vides
-    return filter(x -> length(x.dataIds) > 0, clusters)
+    # Retourner tous les clusters des representants
+    # for i in 1:n
+    #     println(i, " ", find(uf, i), " ", length(clusters[find(uf, i)].dataIds), " ", i in clusters[find(uf, i)].dataIds)
+    # end
+    return [clusters[i] for i in 1:n if find(uf, i) == i]
+end
+
+"""
+Essaie de regrouper des données en commençant par celles qui sont les plus proches.
+Deux clusters de données peuvent être fusionnés en un cluster C s'il n'existe aucune données x_i pour aucune caractéristique j qui intersecte l'intervalle représenté par les bornes minimale et maximale de C pour j (x_i,j n'appartient pas à [min_{x_k dans C} x_k,j ; max_{k dans C} x_k,j]).
+(hypothèse H1)
+
+Entrées :
+- x : caractéristiques des données d'entraînement
+- y : classe des données d'entraînement
+- percentage : le nombre de clusters obtenu sera égal à n * percentage
+ 
+Sorties :
+- un tableau de Cluster constituant une partition de x
+"""
+function exactMerge(x, y)
+    return fullMerge(x, y, true)
+end
+
+"""
+Même idée que exactMerge, mais sans l'hypothèse H1
+"""
+function quickMerge(x, y)
+    return fullMerge(x, y, false)
 end
 
 """
@@ -103,9 +116,7 @@ function simpleMerge(x, y, gamma)
     end
 
     # Id du cluster de chaque donnée dans clusters
-    # (clusters[clusterId[i]] est le cluster contenant i)
-    # (clusterId[i] = i, initialement)
-    clusterId = collect(1:n)
+    uf = makeUnionFind(n)
 
     # Distances entre des couples de données de même classe
     distances = Vector{Distance}([])
@@ -130,8 +141,8 @@ function simpleMerge(x, y, gamma)
     while distanceId <= length(distances) && remainingClusters > n * gamma
 
         distance = distances[distanceId]
-        cId1 = clusterId[distance.ids[1]]
-        cId2 = clusterId[distance.ids[2]]
+        cId1 = find(uf, distance.ids[1])
+        cId2 = find(uf, distance.ids[2])
 
         # Si les deux données associées ne sont pas déjà dans le même cluster
         if cId1 != cId2
@@ -140,19 +151,17 @@ function simpleMerge(x, y, gamma)
             # Fusionner leurs clusters 
             c1 = clusters[cId1]
             c2 = clusters[cId2]
-            merge!(c1, c2)
-            for id in c2.dataIds
-                clusterId[id]= cId1
+            if union(uf, distance.ids[1], distance.ids[2])
+                merge!(c1, c2)
+            else
+                merge!(c2, c1)
             end
-
-            # Vider le second cluster
-            empty!(clusters[cId2].dataIds)
         end
         distanceId += 1
     end
     
-    # Retourner tous les clusters non vides
-    return filter(x -> length(x.dataIds) > 0, clusters)
+    # Retourner tous les clusters des representants
+    return [clusters[i] for i in 1:n if find(uf, i) == i]
 end 
 
 """
@@ -167,7 +176,7 @@ Entrées :
 Sorties :
 - vrai si la fusion est possible ; faux sinon.
 """
-function canMerge(c1::Cluster, c2::Cluster, x::Matrix{Float64}, y::Vector{Int})
+function canMerge(c1::Cluster, c2::Cluster, x::Matrix{Float64}, y) #y::Vector{Int}
 
     # Calcul des bornes inférieures si c1 et c2 étaient fusionnés
     mergedLBounds = min.(c1.lBounds, c2.lBounds)
@@ -237,7 +246,7 @@ Sorties :
 function merge!(c1::Cluster, c2::Cluster)
 
     append!(c1.dataIds, c2.dataIds)
-    c1.x = vcat(c1.x, c2.x)
+    # c1.x = vcat(c1.x, c2.x) it's always x anyways
     c1.lBounds = min.(c1.lBounds, c2.lBounds)
     c1.uBounds = max.(c1.uBounds, c2.uBounds)    
 end
