@@ -46,7 +46,7 @@ Entrées :
 - x  : caractéristique des données d'entraînement
 - y  : classe des données d'entraînement
 """
-function Cluster(id::Vector{Int}, x::Matrix{Float64}, y)
+function Cluster(id::Vector{Int}, x::Matrix{Float64}, y::Int)
 
     c = Cluster()
     c.x = x

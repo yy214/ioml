@@ -226,7 +226,8 @@ function Tree(D::Int64, c::Vector{Int64}, u::Matrix{Int64}, s_model::Matrix{Int6
 
         # Si une séparation y est effectuée
         if c[t] == -1
-
+            
+            # println("separation at ", t)
             # Indice des données allant à droite ou à gauche
             I_R = Int64[]
             I_L = Int64[]
@@ -240,6 +241,8 @@ function Tree(D::Int64, c::Vector{Int64}, u::Matrix{Int64}, s_model::Matrix{Int6
 
             len_l = length(I_L)
             len_r = length(I_R)
+            println("sizes", len_l, " ", len_r)
+            println(x[I_L[1]])
 
             m = Model(CPLEX.Optimizer)
             set_silent(m)
@@ -294,7 +297,7 @@ function Tree(D::Int64, c::Vector{Int64}, u::Matrix{Int64}, s_model::Matrix{Int6
 
     sepCount = 2^D - 1
     dataCount = length(clusters)
-    featuresCount = length(clusters[1].lBounds)
+    featuresCount = size(clusters[1].x, 2)
 
     this.a = zeros(Float64, featuresCount, sepCount)
     this.b = zeros(Float64, sepCount)
@@ -304,21 +307,22 @@ function Tree(D::Int64, c::Vector{Int64}, u::Matrix{Int64}, s_model::Matrix{Int6
 
         # Si une sépration y est effectuée
         if c[t] == -1
+            # println("separation at ", t)
 
-            # Déterminer les données qui vont à gauche ou droite
-            rightData = Matrix{Float64}(undef, 0, featuresCount)
-            leftData = Matrix{Float64}(undef, 0, featuresCount)
+            # Déterminer les identifiants des données qui vont à gauche ou droite
+            I_R = Int64[]
+            I_L = Int64[]
             
             for i in 1:dataCount
                 if u[i, t*2] == 1
-                    leftData = vcat(leftData, clusters[i].x)
+                    push!(I_L, i)
                 elseif u[i, t*2+1] == 1
-                    rightData = vcat(rightData, clusters[i].x)
+                    push!(I_R, i)
                 end
             end
-
-            len_l = size(leftData, 1)
-            len_r = size(rightData, 1)
+            
+            len_l = length(I_L)
+            len_r = length(I_R)
 
             m = Model(CPLEX.Optimizer)
             set_silent(m)
@@ -334,8 +338,8 @@ function Tree(D::Int64, c::Vector{Int64}, u::Matrix{Int64}, s_model::Matrix{Int6
             @constraint(m, [j in 1:featuresCount], a[j] <= s[j])
             @constraint(m, sum(s[j]  for j in 1:featuresCount) <= sum(s_model[j, t] for j in 1:featuresCount)) # on ne veut pas augmenter la "complexité" de la séparation
             @constraint(m, [i in 1:len_l + len_r], e[i] >= e_min)
-            @constraint(m, [i in 1:len_l], e[i] == b - sum(a[j]*leftData[i, j] for j in 1:featuresCount))
-            @constraint(m, [i in 1:len_r], e[i+len_l] == - b + sum(a[j]*rightData[i, j] for j in 1:featuresCount))
+            @constraint(m, [i in 1:len_l], e[i] == b - sum(a[j]*clusters[1].x[I_L[i], j] for j in 1:featuresCount))
+            @constraint(m, [i in 1:len_r], e[i+len_l] == - b + sum(a[j]*clusters[1].x[I_R[i], j] for j in 1:featuresCount))
 
             @objective(m, Max, e_min)
             optimize!(m)
