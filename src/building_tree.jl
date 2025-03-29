@@ -145,7 +145,7 @@ function build_tree(x::Matrix{Float64}, y::Vector{}, D::Int64, classes; multivar
         else
             T = Tree(D, value.(a), class, round.(Int, value.(u_at)), x)
         end
-    end   
+    end       
 
     return T, objective, resolution_time, gap
 end
@@ -176,6 +176,11 @@ function build_tree(clusters::Vector{Cluster}, D::Int64, classes;multivariate::B
     sepCount = 2^D - 1 # Nombre de séparations de l'arbre
     leavesCount = 2^D # Nombre de feuilles de l'arbre
     
+    # for c in clusters
+    #     print(length(c.dataIds), "\t")
+    # end
+    # println()
+
     m = Model(CPLEX.Optimizer) 
 
     set_silent(m) # Masque les sorties du solveur
@@ -200,13 +205,13 @@ function build_tree(clusters::Vector{Cluster}, D::Int64, classes;multivariate::B
                             mu_vect[j] = min(mu_vect[j], abs(clusters[i1].barycenter[j] - clusters[i2].barycenter[j]))
                         end
                     else  
-                    v1 = clusters[i1].lBounds[j] - clusters[i2].uBounds[j]
-                    v2 = clusters[i2].lBounds[j] - clusters[i1].uBounds[j]
+                        v1 = clusters[i1].lBounds[j] - clusters[i2].uBounds[j]
+                        v2 = clusters[i2].lBounds[j] - clusters[i1].uBounds[j]
 
-                    # Si les clusters n'ont pas des intervalles pour la caractéristique j qui s'intersectent
+                        # Si les clusters n'ont pas des intervalles pour la caractéristique j qui s'intersectent
                         if v1 > 1E-4 || v2 > 1E-4
-                        vMin = min(abs(v1), abs(v2))
-                        mu_vect[j] = min(mu_vect[j], vMin)
+                            vMin = min(abs(v1), abs(v2))
+                            mu_vect[j] = min(mu_vect[j], vMin)
                         end
                     end
                 end
@@ -219,9 +224,9 @@ function build_tree(clusters::Vector{Cluster}, D::Int64, classes;multivariate::B
     ## Déclaraction des variables
     if multivariate
         @variable(m, a[1:featuresCount, 1:sepCount], base_name="a_{j, t}")
-        @variable(m, a_h[1:featuresCount, 1:sepCount], base_name="â_{j, t}")
-        @variable(m, s[1:featuresCount, 1:sepCount], Bin, base_name="s_{j, t}")
-        @variable(m, d[1:sepCount], Bin, base_name="d_t")
+        @variable(m, a_h[1:featuresCount, 1:sepCount], base_name="â_{j, t}") # abs(a_{j,t})
+        @variable(m, s[1:featuresCount, 1:sepCount], Bin, base_name="s_{j, t}") # a_{j,t} != 0
+        @variable(m, d[1:sepCount], Bin, base_name="d_t") # sum of abs(a_{j,t})
     else
         @variable(m, a[1:featuresCount, 1:sepCount], Bin, base_name="a")
     end 
@@ -267,7 +272,6 @@ function build_tree(clusters::Vector{Cluster}, D::Int64, classes;multivariate::B
         elseif useFeS
             @constraint(m, [(clusterId, cluster) in enumerate(clusters), dataId in cluster.dataIds, t in 1:sepCount], sum(a[j, t]*cluster.x[dataId, j] for j in 1:featuresCount) + mu <= b[t] + (2+mu)*(2-u_at[clusterId, t*2]-r[dataId])) # contrainte de capacité controlant le passage dans le noeud fils gauche
             @constraint(m, [(clusterId, cluster) in enumerate(clusters), dataId in cluster.dataIds, t in 1:sepCount], sum(a[j, t]*cluster.x[dataId, j] for j in 1:featuresCount) >= b[t] - 2*(1-u_at[clusterId, t*2 + 1])) # contrainte de capacité controlant le passage dans le noeud fils droit
-        
         else 
             @constraint(m, [i in 1:clusterCount, t in 1:sepCount, dataId in clusters[i].dataIds], sum(a[j, t]*clusters[i].x[dataId, j] for j in 1:featuresCount) + mu <= b[t] + (2+mu)*(1-u_at[i, t*2])) # contrainte de capacité controlant le passage dans le noeud fils gauche
             @constraint(m, [i in 1:clusterCount, t in 1:sepCount, dataId in clusters[i].dataIds], sum(a[j, t]*clusters[i].x[dataId, j] for j in 1:featuresCount) >= b[t] - 2*(1-u_at[i, t*2 + 1])) # contrainte de capacité controlant le passage dans le noeud fils droit
@@ -280,9 +284,9 @@ function build_tree(clusters::Vector{Cluster}, D::Int64, classes;multivariate::B
         elseif useFeS
             @constraint(m, [(clusterId, cluster) in enumerate(clusters), dataId in cluster.dataIds, t in 1:sepCount], sum(a[j, t]*(cluster.x[dataId, j]+mu_vect[j]-mu_min) for j in 1:featuresCount) + mu_min <= b[t] + (1+mu_max)*(2-u_at[clusterId, t*2]-r[dataId])) # contrainte de capacité controlant le passage dans le noeud fils gauche
             @constraint(m, [(clusterId, cluster) in enumerate(clusters), dataId in cluster.dataIds, t in 1:sepCount], sum(a[j, t]*cluster.x[dataId, j] for j in 1:featuresCount) >= b[t] - (2-u_at[clusterId, t*2 + 1]-r[dataId])) # contrainte de capacité controlant le passage dans le noeud fils droit
-    else
-        @constraint(m, [i in 1:clusterCount, t in 1:sepCount], sum(a[j, t]*(clusters[i].uBounds[j]+mu_vect[j]-mu_min) for j in 1:featuresCount) + mu_min <= b[t] + (1+mu_max)*(1-u_at[i, t*2])) # contrainte de capacité controlant le passage dans le noeud fils gauche
-        @constraint(m, [i in 1:clusterCount, t in 1:sepCount], sum(a[j, t]*clusters[i].lBounds[j] for j in 1:featuresCount) >= b[t] - (1-u_at[i, t*2 + 1])) # contrainte de capacité controlant le passage dans le noeud fils droit
+        else # unsplittable
+            @constraint(m, [i in 1:clusterCount, t in 1:sepCount], sum(a[j, t]*(clusters[i].uBounds[j]+mu_vect[j]-mu_min) for j in 1:featuresCount) + mu_min <= b[t] + (1+mu_max)*(1-u_at[i, t*2])) # contrainte de capacité controlant le passage dans le noeud fils gauche
+            @constraint(m, [i in 1:clusterCount, t in 1:sepCount], sum(a[j, t]*clusters[i].lBounds[j] for j in 1:featuresCount) >= b[t] - (1-u_at[i, t*2 + 1])) # contrainte de capacité controlant le passage dans le noeud fils droit
         end 
         @constraint(m, [i in 1:clusterCount, t in 1:sepCount], u_at[i, t*2+1] <= sum(a[j, t] for j in 1:featuresCount)) # contrainte de capacité empechant les données de passer dans le fils droit d'un noeud n'appliquant pas de règle de branchement
     end
@@ -303,16 +307,16 @@ function build_tree(clusters::Vector{Cluster}, D::Int64, classes;multivariate::B
     
     # Si une solution a été trouvée
     if primal_status(m) == MOI.FEASIBLE_POINT
-    # class[t] : classe prédite par le sommet t
-    class = Vector{Int64}(undef, sepCount+leavesCount)
-    for t in 1:(sepCount+leavesCount)
-        k = argmax(value.(c[:, t]))
-        if value.(c[k, t]) >= 1.0 - 10^-4
-            class[t] = k
-        else
-            class[t] = -1
+        # class[t] : classe prédite par le sommet t
+        class = Vector{Int64}(undef, sepCount+leavesCount)
+        for t in 1:(sepCount+leavesCount)
+            k = argmax(value.(c[:, t]))
+            if value.(c[k, t]) >= 1.0 - 10^-4
+                class[t] = k
+            else
+                class[t] = -1
+            end
         end
-    end
         
         objective = JuMP.objective_value(m)
 
@@ -327,12 +331,14 @@ function build_tree(clusters::Vector{Cluster}, D::Int64, classes;multivariate::B
         
         # Construction d'une variable de type Tree dans laquelle chaque séparation est recentrée
         if multivariate
-            T = Tree(D, class, round.(Int, value.(u_at)), round.(Int, value.(s)), clusters)
+            T = Tree(D, value.(a), value.(b), class)
+            # T = Tree(D, class, round.(Int, value.(u_at)), round.(Int, value.(s)), clusters)
         else
             T = Tree(D, value.(a), class, round.(Int, value.(u_at)), clusters)
         end
-    end   
-
+    end  
+    # println("a ", value.(a))
+    # println("b ", value.(b))
     return T, objective, resolution_time, gap
 end
 
@@ -372,6 +378,8 @@ function iteratively_build_tree(clusters::Vector{Cluster}, D::Int64, x::Matrix{F
         
         # Solve with the current clusters
         T, objective, resolution_time, gap = build_tree(clusters, D, classes, multivariate=multivariate, time_limit=time_limit==-1 ? -1 : remainingTime, useFhS=useFhS, useFeS=useFeS)
+
+        # println(T)
 
         # If a solution has been obtained
         if objective != -1
