@@ -91,6 +91,36 @@ function quickMerge(x, y)
 end
 
 """
+Regroupe en clusters les données de même classe
+
+Entrées :
+- x : caractéristiques des données
+- y : classe des données
+
+Sorties :
+- un tableau de Cluster constituant une partition de x
+"""
+function mergeByClass(x, y)
+    n = length(y)
+    m = length(x[1,:])
+    
+    classCount = length(unique(y))
+    clusters = Vector{Cluster}([])
+    ids = Vector{Vector{Int}}()
+    for c in 1:classCount
+        push!(ids, [])
+    end
+    for i in 1:n
+        push!(ids[y[i]], i)
+    end
+    # println(ids)
+    for c in 1:classCount
+        push!(clusters, Cluster(ids[c], x, c))
+    end
+    return clusters
+end
+
+"""
 Regroupe des données en commençant par celles qui sont les plus proches jusqu'à ce qu'un certain pourcentage de clusters soit atteint
 
 Entrées :

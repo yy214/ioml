@@ -29,30 +29,13 @@ function main_iterative()
         println(" (train size ", size(X_train, 1), ", test size ", size(X_test, 1), ", ", size(X_train, 2), ", features count: ", size(X_train, 2), ")")
         
         # Temps limite de la méthode de résolution en secondes        
-        time_limit = 10
+        time_limit = 42
 
         for D in 2:3 #4
-            println("\tD = ", D)
-            # println("\t\tUnivarié")
-            # println("\t\t\t- Unsplittable clusters (FU)")
-            # testMerge(X_train, Y_train, X_test, Y_test, D, classes, time_limit = time_limit, isMultivariate = false)
-            # println("\t\t\t- Iterative heuristic (FhS)")
-            # testIterative(X_train, Y_train, X_test, Y_test, D, classes, time_limit = time_limit, isMultivariate = false, isExact=false)
-            # println("\t\t\t- Iterative heuristic (FhS) with shifts")
-            # testIterative(X_train, Y_train, X_test, Y_test, D, classes, time_limit = time_limit, isMultivariate = false, isExact=false, shiftSeparations=true)
-            # println("\t\t\t- Iterative exact (FeS)")
-            # testIterative(X_train, Y_train, X_test, Y_test, D, classes, time_limit = time_limit, isMultivariate = false, isExact=true)
-
-#            # Do not apply to the multivariate case in the project             
-           println("\t\tMultivarié")
-#            println("\t\t\t- Unsplittable clusters (FU)")
-#            testMerge(X_train, Y_train, X_test, Y_test, D, classes, time_limit = time_limit, isMultivariate = true)
-            newTestIterative(X_train, Y_train, X_test, Y_test, D, classes, quickMerge, time_limit = time_limit, isMultivariate = true, isExact=false)
-            newTestIterative(X_train, Y_train, X_test, Y_test, D, classes, quickMerge, time_limit = time_limit, isMultivariate = true, isExact=true)
-            #    println("\t\t\t- Iterative heuristic (FhS)")
-        #    testIterative(X_train, Y_train, X_test, Y_test, D, classes, time_limit = time_limit, isMultivariate = true, isExact=false)
-        #    println("\t\t\t- Iterative exact (FeS)")
-        #    testIterative(X_train, Y_train, X_test, Y_test, D, classes, time_limit = time_limit, isMultivariate = true, isExact=true)
+            println("\tD = ", D)           
+            println("\t\tMultivarié")
+            newTestIterative(X_train, Y_train, X_test, Y_test, D, classes, mergeByClass, time_limit = time_limit, isMultivariate = true, isExact=false)
+            newTestIterative(X_train, Y_train, X_test, Y_test, D, classes, mergeByClass, time_limit = time_limit, isMultivariate = true, isExact=true)
         end
     end
 end 

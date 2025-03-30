@@ -285,11 +285,12 @@ Entrées :
 - u : flot des données dans l'arbre
 - s_model : s[j, t] == 1 ssi le coefficient de la caractéristique j est non nul dans la séparation du sommet t
 - clusters : liste des clusters regroupant les données d'entraînement
+- byAvg: prendre barycentre si vrai, prendre tous les points sinon
 
 Sortie :
 - this::Tree : un arbre
 """
-function Tree(D::Int64, c::Vector{Int64}, u::Matrix{Int64}, s_model::Matrix{Int64}, clusters::Vector{Cluster})
+function Tree(D::Int64, c::Vector{Int64}, u::Matrix{Int64}, s_model::Matrix{Int64}, clusters::Vector{Cluster}, byAvg::Bool)
     
     this = Tree()
     this.D = D
@@ -310,19 +311,29 @@ function Tree(D::Int64, c::Vector{Int64}, u::Matrix{Int64}, s_model::Matrix{Int6
             # println("separation at ", t)
 
             # Déterminer les identifiants des données qui vont à gauche ou droite
-            I_R = Int64[]
-            I_L = Int64[]
-            
+            rightData = Matrix{Float64}(undef, 0, featuresCount)
+            leftData = Matrix{Float64}(undef, 0, featuresCount)
+            # println(size(rightData))
+
             for i in 1:dataCount
+                # println(size(clusters[1].x[clusters[i].dataIds]))
                 if u[i, t*2] == 1
-                    push!(I_L, i)
+                    if byAvg
+                        leftData = vcat(leftData, reshape(clusters[i].barycenter, 1, :))
+                    else
+                        leftData = vcat(leftData, clusters[1].x[clusters[i].dataIds,:])
+                    end
                 elseif u[i, t*2+1] == 1
-                    push!(I_R, i)
+                    if byAvg
+                        rightData = vcat(rightData, reshape(clusters[i].barycenter, 1, :))
+                    else
+                        rightData = vcat(rightData, clusters[1].x[clusters[i].dataIds,:])
+                    end
                 end
             end
             
-            len_l = length(I_L)
-            len_r = length(I_R)
+            len_l = size(leftData, 1)
+            len_r = size(rightData, 1)
 
             m = Model(CPLEX.Optimizer)
             set_silent(m)
@@ -338,8 +349,8 @@ function Tree(D::Int64, c::Vector{Int64}, u::Matrix{Int64}, s_model::Matrix{Int6
             @constraint(m, [j in 1:featuresCount], a[j] <= s[j])
             @constraint(m, sum(s[j]  for j in 1:featuresCount) <= sum(s_model[j, t] for j in 1:featuresCount)) # on ne veut pas augmenter la "complexité" de la séparation
             @constraint(m, [i in 1:len_l + len_r], e[i] >= e_min)
-            @constraint(m, [i in 1:len_l], e[i] == b - sum(a[j]*clusters[1].x[I_L[i], j] for j in 1:featuresCount))
-            @constraint(m, [i in 1:len_r], e[i+len_l] == - b + sum(a[j]*clusters[1].x[I_R[i], j] for j in 1:featuresCount))
+            @constraint(m, [i in 1:len_l], e[i] == b - sum(a[j]*leftData[i, j] for j in 1:featuresCount))
+            @constraint(m, [i in 1:len_r], e[i+len_l] == - b + sum(a[j]*rightData[i, j] for j in 1:featuresCount))
 
             @objective(m, Max, e_min)
             optimize!(m)

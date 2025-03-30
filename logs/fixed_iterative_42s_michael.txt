@@ -24,7 +24,7 @@ Cluster method: quickMerge exact: true
 Cluster method: quickMerge exact: false
 0.0%    Erreurs train/test : 3/4        10.0s   11 iterations
 Cluster method: quickMerge exact: true
-1.68e8% Erreurs train/test : 115/25     42.1s   12 iterations
+0.0%    Erreurs train/test : 0/2        25.3s   14 iterations
 === Dataset wine (train size 142, test size 36, 13, features count: 13)
         D = 2
                 Multivarié
