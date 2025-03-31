@@ -5,7 +5,7 @@ include("main_merge.jl")
 include("shift.jl")
 
 function main_iterative()
-    for dataSetName in ["iris", "seeds", "wine"]
+    for dataSetName in ["iris", "seeds", "wine", "stars", "creditCardSmall"]
         
         print("=== Dataset ", dataSetName)
         
@@ -31,11 +31,11 @@ function main_iterative()
         # Temps limite de la méthode de résolution en secondes        
         time_limit = 42
 
-        for D in 2:3 #4
+        for D in 2:3
             println("\tD = ", D)           
             println("\t\tMultivarié")
-            newTestIterative(X_train, Y_train, X_test, Y_test, D, classes, mergeByClass, time_limit = time_limit, isMultivariate = true, isExact=false)
-            newTestIterative(X_train, Y_train, X_test, Y_test, D, classes, mergeByClass, time_limit = time_limit, isMultivariate = true, isExact=true)
+            newTestIterative(X_train, Y_train, X_test, Y_test, D, classes, quickMerge, time_limit = time_limit, isMultivariate = true, isExact=false)
+            newTestIterative(X_train, Y_train, X_test, Y_test, D, classes, quickMerge, time_limit = time_limit, isMultivariate = true, isExact=true)
         end
     end
 end 

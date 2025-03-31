@@ -1,0 +1,65 @@
+=== Dataset iris (train size 120, test size 30, 4, features count: 4)
+        D = 2
+                Multivarié
+Cluster method: mergeByClass exact: false
+0.0%    Erreurs train/test : 1/0        26.0s   11 iterations
+Cluster method: mergeByClass exact: true
+0.0%    Erreurs train/test : 2/1        8.9s    12 iterations
+        D = 3
+                Multivarié
+Cluster method: mergeByClass exact: false
+0.0%    Erreurs train/test : 0/0        4.7s    11 iterations
+Cluster method: mergeByClass exact: true
+0.0%    Erreurs train/test : 0/0        29.5s   16 iterations
+=== Dataset seeds (train size 168, test size 42, 6, features count: 6)
+        D = 2
+                Multivarié
+Cluster method: mergeByClass exact: false
+0.0%    Erreurs train/test : 4/2        7.2s    11 iterations
+Cluster method: mergeByClass exact: true
+0.0%    Erreurs train/test : 3/3        11.0s   15 iterations
+        D = 3
+                Multivarié
+Cluster method: mergeByClass exact: false
+0.0%    Erreurs train/test : 1/2        39.1s   16 iterations
+Cluster method: mergeByClass exact: true
+0.0%    Erreurs train/test : 3/2        18.7s   11 iterations
+=== Dataset wine (train size 142, test size 36, 13, features count: 13)
+        D = 2
+                Multivarié
+Cluster method: mergeByClass exact: false
+0.0%    Erreurs train/test : 2/3        6.0s    12 iterations
+Cluster method: mergeByClass exact: true
+0.0%    Erreurs train/test : 1/2        6.2s    12 iterations
+        D = 3
+                Multivarié
+Cluster method: mergeByClass exact: false
+0.0%    Erreurs train/test : 3/4        2.0s    9 iterations
+Cluster method: mergeByClass exact: true
+0.0%    Erreurs train/test : 2/1        15.6s   14 iterations
+=== Dataset creditCardSmall (train size 266, test size 67, 29, features count: 29)
+        D = 2
+                Multivarié
+Cluster method: mergeByClass exact: false
+0.0%    Erreurs train/test : 3/3        5.4s    10 iterations
+Cluster method: mergeByClass exact: true
+0.0%    Erreurs train/test : 2/3        21.8s   16 iterations
+        D = 3
+                Multivarié
+Cluster method: mergeByClass exact: false
+0.0%    Erreurs train/test : 2/3        5.6s    8 iterations
+Cluster method: mergeByClass exact: true
+0.0%    Erreurs train/test : 0/4        110.5s  13 iterations
+=== Dataset stars (train size 2316, test size 580, 20, features count: 20)
+        D = 2
+                Multivarié
+Cluster method: mergeByClass exact: false
+0.7%    Erreurs train/test : 401/102    120.1s  5 iterations
+Cluster method: mergeByClass exact: true
+1.4%    Erreurs train/test : 1269/333   120.6s  4 iterations
+        D = 3
+                Multivarié
+Cluster method: mergeByClass exact: false
+0.8%    Erreurs train/test : 361/111    120.7s  5 iterations
+Cluster method: mergeByClass exact: true
+63.2%   Erreurs train/test : 897/227    120.9s  4 iterations

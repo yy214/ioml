@@ -331,8 +331,8 @@ function build_tree(clusters::Vector{Cluster}, D::Int64, classes;multivariate::B
         
         # Construction d'une variable de type Tree dans laquelle chaque séparation est recentrée
         if multivariate
-            T = Tree(D, value.(a), value.(b), class)
-            # T = Tree(D, class, round.(Int, value.(u_at)), round.(Int, value.(s)), clusters, true)
+            # T = Tree(D, value.(a), value.(b), class)
+            T = Tree(D, class, round.(Int, value.(u_at)), round.(Int, value.(s)), clusters, true)
         else
             T = Tree(D, value.(a), class, round.(Int, value.(u_at)), clusters)
         end

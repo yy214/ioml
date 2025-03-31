@@ -8,7 +8,7 @@ function main_merge()
         print("=== Dataset ", dataSetName)
         
         # Préparation des données
-        include("../data/" * dataSetName * ".txt")
+        include("./data/" * dataSetName * ".txt")
         
         # Ramener chaque caractéristique sur [0, 1]
         reducedX = Matrix{Float64}(X)
@@ -27,7 +27,7 @@ function main_merge()
         println(" (train size ", size(X_train, 1), ", test size ", size(X_test, 1), ", ", size(X_train, 2), ", features count: ", size(X_train, 2), ")")
         
         # Temps limite de la méthode de résolution en secondes        
-        time_limit = 10
+        time_limit = 30
 
         for D in 2:4
             println("\tD = ", D)

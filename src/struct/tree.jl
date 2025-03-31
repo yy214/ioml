@@ -316,6 +316,9 @@ function Tree(D::Int64, c::Vector{Int64}, u::Matrix{Int64}, s_model::Matrix{Int6
             # println(size(rightData))
 
             for i in 1:dataCount
+                if u[i, t] != 1 
+                    continue
+                end
                 # println(size(clusters[1].x[clusters[i].dataIds]))
                 if u[i, t*2] == 1
                     if byAvg
